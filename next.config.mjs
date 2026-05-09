@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   serverExternalPackages: ['better-sqlite3'],
-  turbopack: {},
 };
 
 export default nextConfig;
