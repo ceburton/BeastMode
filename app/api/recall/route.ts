@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { logStudySession } from '@/lib/stats';
 import { getDb } from '@/lib/db';
-import { todayISO } from '@/lib/utils';
+import { nowISO, todayISO } from '@/lib/utils';
+import { nextSchedule } from '@/lib/srs';
+import type { Grade } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,31 +23,44 @@ export async function POST(req: Request) {
   const db = getDb();
   const recalled = new Set(body.recalledTermIds);
   const today = todayISO();
+  const reviewGrade: Grade = body.selfRating === 'high' ? 'easy' : body.selfRating === 'mid' ? 'good' : 'hard';
 
   const upsert = db.transaction(() => {
     const insertNew = db.prepare(
       'INSERT INTO card_progress(term_id, interval_days, ease, reviews, lapses, due_date, last_review) VALUES(?, ?, ?, ?, ?, ?, ?)'
     );
     const updateExisting = db.prepare(
-      'UPDATE card_progress SET reviews = reviews + 1, last_review = ? WHERE term_id = ?'
+      `UPDATE card_progress
+       SET interval_days = ?, ease = ?, reviews = ?, lapses = ?, due_date = ?, last_review = ?
+       WHERE term_id = ?`
+    );
+    const selectExisting = db.prepare(
+      'SELECT interval_days, ease, reviews, lapses FROM card_progress WHERE term_id = ?'
     );
 
     for (const termId of body.totalTermIds) {
-      const exists = db.prepare('SELECT 1 AS x FROM card_progress WHERE term_id = ?').get(termId) as
-        | { x: 1 }
+      const existing = selectExisting.get(termId) as
+        | { interval_days: number; ease: number; reviews: number; lapses: number }
         | undefined;
-      if (recalled.has(termId)) {
-        // Treat a recalled term like a "good" review in SRS
-        if (!exists) {
-          insertNew.run(termId, 1, 2.5, 1, 0, dueDate(today, 1), new Date().toISOString());
-        } else {
-          updateExisting.run(new Date().toISOString(), termId);
-        }
+      const grade: Grade = recalled.has(termId) ? reviewGrade : 'again';
+      const current = existing ?? { interval_days: 0, ease: 2.5, reviews: 0, lapses: 0 };
+      const next = nextSchedule(
+        {
+          intervalDays: current.interval_days,
+          ease: current.ease,
+          reviews: current.reviews,
+          lapses: current.lapses,
+        },
+        grade
+      );
+      const reviews = current.reviews + 1;
+      const lapses = current.lapses + next.lapsesDelta;
+      const nextDueDate = dueDate(today, next.intervalDays);
+      const reviewedAt = nowISO();
+      if (existing) {
+        updateExisting.run(next.intervalDays, next.ease, reviews, lapses, nextDueDate, reviewedAt, termId);
       } else {
-        // Treat a missed term as needing review tomorrow
-        if (!exists) {
-          insertNew.run(termId, 0, 2.5, 1, 1, dueDate(today, 0), new Date().toISOString());
-        }
+        insertNew.run(termId, next.intervalDays, next.ease, reviews, lapses, nextDueDate, reviewedAt);
       }
     }
   });

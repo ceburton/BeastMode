@@ -518,6 +518,11 @@ function writeDb(parsed: ParsedTerm[]) {
     CREATE TABLE study_sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT NOT NULL,
                                    seconds INTEGER NOT NULL, taken_at TEXT NOT NULL);
 
+    CREATE TABLE match_best_times (unit_id INTEGER PRIMARY KEY REFERENCES units(id),
+                                   seconds REAL NOT NULL, misses INTEGER NOT NULL DEFAULT 0,
+                                   pairs INTEGER NOT NULL DEFAULT 0,
+                                   taken_at TEXT NOT NULL);
+
     CREATE TABLE user_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
   `);
 

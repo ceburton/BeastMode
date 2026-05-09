@@ -158,6 +158,7 @@ export function recordQuizAttempt(args: {
   total: number;
   durationS: number;
   answers: { termId: string; correct: boolean; confidence: number | null; timeMs: number; questionType: string }[];
+  logSession?: boolean;
 }): number {
   const db = getDb();
   const insert = db.transaction(() => {
@@ -176,7 +177,7 @@ export function recordQuizAttempt(args: {
     return attemptId;
   });
   const attemptId = insert();
-  logStudySession(args.mode, args.durationS);
+  if (args.logSession !== false) logStudySession(args.mode, args.durationS);
   return attemptId;
 }
 
@@ -222,6 +223,7 @@ export function recordExamAttempt(args: {
       timeMs: a.timeMs,
       questionType: a.questionType,
     })),
+    logSession: false,
   });
   logStudySession('exam', args.durationS);
   return Number(r.lastInsertRowid);

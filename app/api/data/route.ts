@@ -17,6 +17,7 @@ export async function GET() {
     quizAnswers: db.prepare('SELECT * FROM quiz_answers').all(),
     examAttempts: db.prepare('SELECT * FROM exam_attempts').all(),
     studySessions: db.prepare('SELECT * FROM study_sessions').all(),
+    matchBestTimes: db.prepare('SELECT * FROM match_best_times').all(),
     userSettings: db.prepare('SELECT * FROM user_settings').all(),
   };
   return new NextResponse(JSON.stringify(dump, null, 2), {
@@ -37,6 +38,7 @@ export async function DELETE() {
     DELETE FROM quiz_attempts;
     DELETE FROM exam_attempts;
     DELETE FROM study_sessions;
+    DELETE FROM match_best_times;
     DELETE FROM card_progress;
     DELETE FROM user_settings;
   `);
@@ -75,8 +77,21 @@ export async function POST(req: Request) {
       time_ms: number;
       question_type: string;
     }>;
-    examAttempts?: any[];
+    examAttempts?: Array<{
+      id: number;
+      mcq_score: number;
+      mcq_total: number;
+      frq1: string;
+      frq2: string;
+      frq1_id: string;
+      frq2_id: string;
+      per_unit_json: string;
+      duration_s: number;
+      taken_at: string;
+    }>;
     studySessions?: Array<{ mode: string; seconds: number; taken_at: string }>;
+    matchBestTimes?: Array<{ unit_id: number; seconds: number; misses: number; pairs: number; taken_at: string }>;
+    userSettings?: Array<{ key: string; value: string }>;
   };
   const db = getDb();
   const reset = db.transaction(() => {
@@ -85,7 +100,9 @@ export async function POST(req: Request) {
       DELETE FROM quiz_attempts;
       DELETE FROM exam_attempts;
       DELETE FROM study_sessions;
+      DELETE FROM match_best_times;
       DELETE FROM card_progress;
+      DELETE FROM user_settings;
     `);
     if (data.cardProgress) {
       const ins = db.prepare(
@@ -117,11 +134,51 @@ export async function POST(req: Request) {
         } catch {}
       }
     }
+    if (data.examAttempts) {
+      const ins = db.prepare(
+        `INSERT INTO exam_attempts(id, mcq_score, mcq_total, frq1, frq2, frq1_id, frq2_id, per_unit_json, duration_s, taken_at)
+         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+      for (const a of data.examAttempts) {
+        try {
+          ins.run(
+            a.id,
+            a.mcq_score,
+            a.mcq_total,
+            a.frq1,
+            a.frq2,
+            a.frq1_id,
+            a.frq2_id,
+            a.per_unit_json,
+            a.duration_s,
+            a.taken_at
+          );
+        } catch {}
+      }
+    }
     if (data.studySessions) {
       const ins = db.prepare('INSERT INTO study_sessions(mode, seconds, taken_at) VALUES(?, ?, ?)');
       for (const s of data.studySessions) {
         try {
           ins.run(s.mode, s.seconds, s.taken_at);
+        } catch {}
+      }
+    }
+    if (data.matchBestTimes) {
+      const ins = db.prepare(
+        'INSERT INTO match_best_times(unit_id, seconds, misses, pairs, taken_at) VALUES(?, ?, ?, ?, ?)'
+      );
+      for (const m of data.matchBestTimes) {
+        try {
+          ins.run(m.unit_id, m.seconds, m.misses, m.pairs, m.taken_at);
+        } catch {}
+      }
+    }
+    if (data.userSettings) {
+      const ins = db.prepare('INSERT INTO user_settings(key, value) VALUES(?, ?)');
+      for (const s of data.userSettings) {
+        try {
+          ins.run(s.key, s.value);
         } catch {}
       }
     }

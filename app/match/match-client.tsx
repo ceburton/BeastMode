@@ -42,6 +42,22 @@ export default function MatchClient({ units }: { units: UnitTerms[] }) {
         setBestTimes(JSON.parse(raw));
       } catch {}
     }
+    fetch('/api/match')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { bestTimes?: { unitId: number; seconds: number }[] } | null) => {
+        if (!data?.bestTimes) return;
+        const serverBest = Object.fromEntries(data.bestTimes.map((b) => [b.unitId, b.seconds]));
+        setBestTimes((prev) => {
+          const merged = { ...prev };
+          for (const [key, seconds] of Object.entries(serverBest)) {
+            const unit = Number(key);
+            if (!merged[unit] || seconds < merged[unit]) merged[unit] = seconds;
+          }
+          localStorage.setItem('beastmode:match-best', JSON.stringify(merged));
+          return merged;
+        });
+      })
+      .catch(() => {});
   }, []);
 
   // Tick timer
@@ -103,7 +119,7 @@ export default function MatchClient({ units }: { units: UnitTerms[] }) {
         fetch('/api/match', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ unitIds: [unitId], durationS: time, pairs: PAIRS }),
+          body: JSON.stringify({ unitIds: [unitId], durationS: time, pairs: PAIRS, misses }),
         });
         setDone(true);
       }

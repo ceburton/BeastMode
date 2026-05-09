@@ -108,6 +108,14 @@ export function ensureSchema(db: Database.Database) {
       taken_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS match_best_times (
+      unit_id INTEGER PRIMARY KEY REFERENCES units(id),
+      seconds REAL NOT NULL,
+      misses INTEGER NOT NULL DEFAULT 0,
+      pairs INTEGER NOT NULL DEFAULT 0,
+      taken_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS user_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL

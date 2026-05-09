@@ -55,23 +55,20 @@ export default function FlashcardsPage() {
     if (!card) return;
     setRevealed(false);
     const sessionSeconds = sessionStart ? (Date.now() - sessionStart) / 1000 : undefined;
+    setReviewedCount((c) => c + 1);
+    const isLastCard = idx + 1 >= deck.length;
     fetch('/api/srs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ termId: card.term.id, grade: g, sessionSeconds: 0 }),
+      body: JSON.stringify({
+        termId: card.term.id,
+        grade: g,
+        sessionSeconds: isLastCard && sessionSeconds ? Math.round(sessionSeconds) : 0,
+      }),
     });
-    setReviewedCount((c) => c + 1);
-    if (idx + 1 >= deck.length) {
+    if (isLastCard) {
       // session done
       setSessionEnded(true);
-      if (sessionSeconds) {
-        // Log session time as one final write so we don't double-count per card
-        fetch('/api/srs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ termId: card.term.id, grade: g, sessionSeconds: Math.round(sessionSeconds) }),
-        });
-      }
       return;
     }
     setIdx((i) => i + 1);
