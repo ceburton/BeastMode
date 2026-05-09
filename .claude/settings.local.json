@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(node *)",
+      "Bash(curl -s \"http://localhost:3000/api/search\")",
+      "Bash(curl -s \"http://localhost:3000/api/srs?scope=all&limit=3\")",
+      "Bash(curl -s -X POST -H \"Content-Type: application/json\" -d '{\"unitIds\":[7],\"count\":5}' \"http://localhost:3000/api/quiz\")",
+      "Bash(curl -s \"http://localhost:3000/api/exam\")",
+      "Bash(curl -s \"http://localhost:3000/api/srs?scope=all&limit=1\")",
+      "Bash(curl *)",
+      "Bash(gh auth *)",
+      "PowerShell(gh auth *)",
+      "PowerShell(git config *)",
+      "PowerShell(winget install *)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); & \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" --version)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status)",
+      "PowerShell(Tee-Object *)",
+      "PowerShell(git *)"
+    ]
+  }
+}

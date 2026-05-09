@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+dist
+.env
+.env.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+*.db-shm
+*.db-wal
+.claude/settings.local.json
